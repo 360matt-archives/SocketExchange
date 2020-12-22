@@ -16,6 +16,11 @@ public class SocketServer {
     public boolean online = true;
     public static HashMap<String, ClientProcess> clients = new HashMap<>();
 
+    /**
+     * Le constructeur lance le serveur
+     *
+     * @param  port le port du serveur à lancer
+     */
     public SocketServer (int port) {
         new Thread(() -> {
             try (ServerSocket server = new ServerSocket(port)) {
@@ -37,6 +42,11 @@ public class SocketServer {
         private PrintWriter out;
         private BufferedReader in;
 
+        /**
+         * Une nouvelle instance de cette class pour chaque client connecté
+         *
+         * @param  client l'objet Socket du client
+         */
         protected ClientProcess (Socket client) {
             new Thread(() -> {
                 try {
@@ -47,6 +57,7 @@ public class SocketServer {
 
                     while (client.isConnected() && !client.isClosed()) {
                         try {
+                            // traite la requête dans une méthode à part
                             executeCmd(SerializeMap.str2map(in.readLine()));
                         } catch (Exception e) { break; }
                     }
@@ -62,6 +73,12 @@ public class SocketServer {
             }).start();
         }
 
+        /**
+         * Vérifie si la requête servait à s'authentifier, qui sera prise en compte le cas concluant.
+         * Ou redirige la requête vers une autre méthode seulement si le client est authentifié.
+         *
+         * @param  request la requête provenant du client sous forme de Map
+         */
         protected void executeCmd (Map<String, String> request) {
             if (request.containsKey("__auth")) {
                 this.name = request.get("__auth");
@@ -74,27 +91,34 @@ public class SocketServer {
         }
 
         private final List<String> requires = Arrays.asList("__recipient", "__channel");
+
+        /**
+         * Lis les entête de la requête
+         * Afin d'envoyer aux clients correspondants la requête
+         *
+         * @param  request la requête provenant du client sous forme de Map
+         */
         protected void transferData (Map<String, String> request) {
             if (request.keySet().containsAll(requires)) {
+                // si la requête contient tous les entête requis
+
+                request.put("__sender", name);
 
                 String recipient = request.get("__recipient");
-                if (clients.containsKey(recipient)) {
-                    request.put("__sender", name);
 
-                    if (recipient.equals("all")) {
-                        clients.forEach((k, v) -> {
-                            if (!v.client.isClosed()) {
-                                v.out.println(SerializeMap.map2str(request));
-                                v.out.flush();
-                            }
-                        });
-                    } else {
-                        ClientProcess destination = clients.get(recipient);
-                        if (!destination.client.isClosed()) {
-                            PrintWriter output = destination.out;
-                            output.println(SerializeMap.map2str(request));
-                            output.flush();
+                if (recipient.equals("all")) {
+                    // permet d'envoyer à tous les clients connectés au serveur
+                    clients.forEach((name, clientProcess) -> {
+                        if (!clientProcess.client.isClosed()) {
+                            clientProcess.out.println(SerializeMap.map2str(request));
+                            clientProcess.out.flush();
                         }
+                    });
+                } else if (clients.containsKey(recipient)) {
+                    ClientProcess destination = clients.get(recipient);
+                    if (!destination.client.isClosed()) {
+                        destination.out.println(SerializeMap.map2str(request));
+                        destination.out.flush();
                     }
                 }
             }
