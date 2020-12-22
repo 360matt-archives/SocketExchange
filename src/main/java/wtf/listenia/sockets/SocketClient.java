@@ -18,10 +18,18 @@ public class SocketClient {
     private static final ConcurrentHashMap<String, Consumer<Map<String, String>>> listeners = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<String, Callback> callbacks = new ConcurrentHashMap<>();
 
+    private static final Pattern patternListeners = Pattern.compile("(.*)#([0-9]*)");
+
+
     private Socket client;
     private PrintWriter out;
     private BufferedReader in;
 
+    /**
+     * Le constructeur connecte le client au serveur et s'y authentifie
+     *
+     * @param  port le port du serveur à lancer
+     */
     public SocketClient (String name, String host, int port) {
         new Thread(() -> {
             try {
@@ -63,12 +71,20 @@ public class SocketClient {
         }).start();
     }
 
-    public void registerDefaultListener () {
+    private void registerDefaultListener () {
         listen("isOnline", x -> reply(x, new HashMap<>()));
     }
 
 
-    public Pattern patternListeners = Pattern.compile("(.*)#([0-9]*)");
+
+
+    /**
+     * Traite une requête reçu depuis le serveur.
+     * Et envoie la requête vers un listener ou un callback
+     *
+     * @param  request  la requête que le client a reçu au format Map<></>
+     */
+
     public void processRequest (Map<String, String> request) {
         String channel = request.get("__channel");
         String id = request.get("__id_reply");
@@ -101,12 +117,24 @@ public class SocketClient {
         }
     }
 
-
+    /**
+     * Initialise un listener qui sera prêt pour reçevoir des requêtes
+     * Chaque listener ne peut prendre en charge qu'un channel
+     *
+     * @param  channel  le nom du channel qui sera écouté
+     * @param  map  la requête sous forme de Map<> que le client recevra
+     */
     public void listen (String channel, Consumer<Map<String, String>> map) {
         int randomNum = ThreadLocalRandom.current().nextInt(20, 5001);
         listeners.put(channel + "#" + randomNum, map);
     }
 
+    /**
+     * Répond à une requête receptionnée par un listener
+     *
+     * @param  before  la requête qui en est l'origine
+     * @param  reply la réponse à cette requête
+     */
     public void reply (Map<String, String> before, Map<String, String> reply) {
         if (!client.isClosed() && client.isConnected()) {
             reply.put("__id_reply", before.get("__id_reply"));
@@ -118,12 +146,20 @@ public class SocketClient {
         }
     }
 
-    public Callback send (String server, String channel, Map<String, String> data) {
+    /**
+     * Répond à une requête receptionnée par un listener
+     *
+     * @param  target le client qui doit reçevoir cette requête
+     * @param  channel le channel à laquelle la requête doit véhiculer
+     * @param  data le contenu de la requête sous la forme Map<>
+     * @return un Callback permettant de capturer une réponse
+     */
+    public Callback send (String target, String channel, Map<String, String> data) {
         if (!client.isClosed() && client.isConnected()) {
             final int id = ThreadLocalRandom.current().nextInt(20, 10001);
 
             data.put("__id_reply", String.valueOf(id));
-            data.put("__recipient", server);
+            data.put("__recipient", target);
             data.put("__channel", channel);
 
             out.println(SerializeMap.map2str(data));
@@ -134,19 +170,32 @@ public class SocketClient {
         return new Callback();
     }
 
-    public boolean isOnline (String server) {
+    /**
+     * Récupère le status d'un client quelquonque, réel ou non
+     *
+     * @param  target le client qu'on questionne
+     * @return le status du client
+     */
+    public boolean isOnline (String target) {
         CompletableFuture<Boolean> future = new CompletableFuture<>();
-        send(server, "isOnline", new HashMap<>())
+        send(target, "isOnline", new HashMap<>())
                 .callback(x -> future.complete(true))
                 .timeout(x -> future.complete(false));
 
         return future.join();
     }
 
-    public int getPing (String server) {
+    /**
+     * Récupère le ping réel aller-retour d'un client réel.
+     * Si le client n'est pas joignable, le ping sera de 1s (1000ms)
+     *
+     * @param  target le client qu'on questionne
+     * @return un entier compris dans le rang [0;1000] représentant le ping
+     */
+    public int getPing (String target) {
         Long date = new Date().getTime();
         CompletableFuture<Long> future = new CompletableFuture<>();
-        send(server, "isOnline", new HashMap<>())
+        send(target, "isOnline", new HashMap<>())
                 .callback(x -> future.complete(new Date().getTime()))
                 .waiting(1)
                 .timeout(x -> future.complete(new Date().getTime()));
@@ -154,6 +203,9 @@ public class SocketClient {
         return (int) (future.join() - date);
     }
 
+    /**
+     * La class de Callback permettant de capturer une réponse suite à une requuête.
+     */
     public static class Callback {
         private final Map<String, String> map;
         private String id;
@@ -168,6 +220,12 @@ public class SocketClient {
         public Callback () { this.map = null; }
         public Callback (Map<String, String> json, int rdmID) { this.map = json; this.rdmID = rdmID; }
 
+        /**
+         * Enregistre le callback dans un listener unique
+         *
+         * @param  callback le consumer de type Map<> qui sera call lors de la réponse
+         * @return l'instance de cette class
+         */
         public Callback callback (Consumer<Map<String, String>> callback) {
             this.consumer = callback;
             if (map != null) {
@@ -177,8 +235,26 @@ public class SocketClient {
             return this;
         }
 
+        /**
+         * Défini le temps d'attente
+         *
+         * @param  seconds le délais s'exprimant en seconde
+         * @return l'instance de cette class
+         */
         public Callback waiting (float seconds) { wait = seconds; return this; }
 
+        /**
+         * Execute le consumer du timeout si aucune réponse n'a été reçu pendant le délais.
+         *
+         * Elle doit être impérativement executée
+         * pour retirer le consumer du callback de la liste
+         * des listener temporaires.
+         * Dans le cas contraire il y aurait une fuite de mémoire.
+         *
+         * @param  fail le consumer de type Void qui sera call si aucune réponse n'est parvenue.
+         * @return ne renvoie pas l'instance de la class
+         *
+         */
         public void timeout (Consumer<Void> fail) {
             if (map != null) {
                 threadTimeout = new Thread(() -> {
