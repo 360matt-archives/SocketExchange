@@ -22,7 +22,7 @@ import java.util.regex.Pattern;
  * @author 360matt
  */
 public class SocketClient {
-    private static final ConcurrentHashMap<String, Consumer<Map<String, String>>> listeners = new ConcurrentHashMap<>();
+    private static final Map<String, Consumer<Map<String, String>>> listeners = new HashMap<>();
     private static final ConcurrentHashMap<String, Callback> callbacks = new ConcurrentHashMap<>();
 
     private static final Pattern patternListeners = Pattern.compile("(.*)#([0-9]*)");
