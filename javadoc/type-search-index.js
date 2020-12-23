@@ -1,0 +1,1 @@
+typeSearchIndex = [{"l":"All Classes","url":"allclasses-index.html"},{"p":"wtf.listenia.sockets","l":"SocketClient.Callback"},{"p":"wtf.listenia.sockets","l":"SocketServer.ClientProcess"},{"p":"wtf.listenia.sockets.converter","l":"SerializeMap"},{"p":"<Unnamed>","l":"ServerTest"},{"p":"wtf.listenia.sockets","l":"SocketClient"},{"p":"wtf.listenia.sockets","l":"SocketServer"}]
