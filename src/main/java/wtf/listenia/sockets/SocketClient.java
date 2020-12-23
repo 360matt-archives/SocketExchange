@@ -249,10 +249,10 @@ public class SocketClient {
          * @author 360matt
          */
         public Callback callback (Consumer<Map<String, String>> callback) {
-            this.consumer = callback;
             if (map != null) {
-                this.id = "reply_" + map.get("__channel") + "#" + rdmID;
-                callbacks.put(this.id, this);
+                this.consumer = callback;
+                this.key = "reply_" + map.get("__channel") + "#" + rdmID;
+                callbacks.put(this.key, this);
             }
             return this;
         }
