@@ -11,8 +11,6 @@ import java.net.Socket;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.Consumer;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Permet de creer un client Socket de SocketExchange
@@ -24,9 +22,6 @@ import java.util.regex.Pattern;
 public class SocketClient {
     private static final Map<String, Consumer<Map<String, String>>> listeners = new HashMap<>();
     private static final ConcurrentHashMap<String, Callback> callbacks = new ConcurrentHashMap<>();
-
-    private static final Pattern patternListeners = Pattern.compile("(.*)#([0-9]*)");
-
 
     private Socket client;
     private PrintWriter out;
@@ -97,32 +92,35 @@ public class SocketClient {
      */
 
     protected void processRequest (Map<String, String> request) {
-        String channel = request.get("__channel");
-        String id = request.get("__id_reply");
+        final String channel = request.get("__channel");
 
         if (!channel.startsWith("reply_")) {
             /* permanent listeners */
-            listeners.forEach((k, v) -> {
-                Matcher matcher = patternListeners.matcher(k);
 
-                if (matcher.find() && matcher.group(1).equals(channel))
-                    listeners.get(k).accept(request);
-            });
-        } else {
-            /* one time listeners */
-            Iterator<String> it = callbacks.keySet().iterator();
-            while (it.hasNext()) {
-                String key = it.next();
-
-                Matcher matcher = patternListeners.matcher(key);
-
-                if (matcher.find() && matcher.group(1).equals(channel) && matcher.group(2).equals(id)) {
-                    Callback callback = callbacks.get(key);
-                    callback.consumer.accept(request);
-                    if (callback.threadTimeout != null)
-                        callback.threadTimeout.interrupt();
-                    it.remove();
+            for (Map.Entry<String, Consumer<Map<String, String>>> entry : listeners.entrySet()) {
+                if (entry.getKey().startsWith(channel)) {
+                    entry.getValue().accept(request);
                     break;
+                }
+            }
+
+        } else {
+            final String id = request.get("__id_reply");
+
+            /* one time listeners */
+
+
+
+            for (Map.Entry<String, Callback> entry : callbacks.entrySet()) {
+                if (entry.getKey().startsWith(channel)) {
+                    if (entry.getKey().split("#")[1].equals(id)) {
+                         final Callback callback = entry.getValue();
+                         callback.consumer.accept(request);
+                         if (callback.threadTimeout != null)
+                            callback.threadTimeout.interrupt();
+                         callbacks.remove(entry.getKey());
+                         break;
+                    }
                 }
             }
         }
