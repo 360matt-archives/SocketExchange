@@ -223,17 +223,23 @@ public class SocketClient {
      */
     public static class Callback {
         private final Map<String, String> map;
-        private String id;
-        private int rdmID;
+        private final int rdmID;
 
+        private String key;
         private Consumer<Map<String, String>> consumer;
 
         private Thread threadTimeout;
         private float wait = 0.05F;
 
 
-        public Callback () { this.map = null; }
-        public Callback (Map<String, String> json, int rdmID) { this.map = json; this.rdmID = rdmID; }
+        public Callback () {
+            this.map = null;
+            this.rdmID = 0;
+        }
+        public Callback (Map<String, String> json, int rdmID) {
+            this.map = json;
+            this.rdmID = rdmID;
+        }
 
         /**
          * Enregistre le callback dans un listener unique
@@ -277,8 +283,8 @@ public class SocketClient {
                 threadTimeout = new Thread(() -> {
                     try {
                         TimeUnit.MILLISECONDS.sleep((long) (this.wait * 1000));
-                        if (callbacks.containsKey(id)) {
-                            callbacks.remove(id);
+                        if (callbacks.containsKey(this.key)) {
+                            callbacks.remove(this.key);
                             fail.accept(null);
                         }
                     } catch (Exception ignored) { }
