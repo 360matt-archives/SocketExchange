@@ -10,7 +10,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-
+/**
+ * Permet de creer un serveur Socket de SocketExchange,
+ * Ne fournissant pas de methodes API,
+ * Elle assure la communication inter-Clients
+ *
+ * @author 360matt
+ */
 public class SocketServer {
 
     public boolean online = true;
@@ -19,7 +25,8 @@ public class SocketServer {
     /**
      * Le constructeur lance le serveur
      *
-     * @param  port le port du serveur à lancer
+     * @param  port le port du serveur a lancer
+     * @author 360matt
      */
     public SocketServer (int port) {
         new Thread(() -> {
@@ -43,9 +50,10 @@ public class SocketServer {
         private BufferedReader in;
 
         /**
-         * Une nouvelle instance de cette class pour chaque client connecté
+         * Une nouvelle instance de cette class pour chaque client connecte
          *
          * @param  client l'objet Socket du client
+         * @author 360matt
          */
         protected ClientProcess (Socket client) {
             new Thread(() -> {
@@ -57,7 +65,7 @@ public class SocketServer {
 
                     while (client.isConnected() && !client.isClosed()) {
                         try {
-                            // traite la requête dans une méthode à part
+                            // traite la requete dans une methode a part
                             executeCmd(SerializeMap.str2map(in.readLine()));
                         } catch (Exception e) { break; }
                     }
@@ -74,10 +82,11 @@ public class SocketServer {
         }
 
         /**
-         * Vérifie si la requête servait à s'authentifier, qui sera prise en compte le cas concluant.
-         * Ou redirige la requête vers une autre méthode seulement si le client est authentifié.
+         * Verifie si la requete servait a s'authentifier, qui sera prise en compte le cas concluant.
+         * Ou redirige la requete vers une autre methode seulement si le client est authentifie.
          *
-         * @param  request la requête provenant du client sous forme de Map
+         * @param  request la requete provenant du client sous forme de Map
+         * @author 360matt
          */
         protected void executeCmd (Map<String, String> request) {
             if (request.containsKey("__auth")) {
@@ -93,21 +102,22 @@ public class SocketServer {
         private final List<String> requires = Arrays.asList("__recipient", "__channel");
 
         /**
-         * Lis les entête de la requête
-         * Afin d'envoyer aux clients correspondants la requête
+         * Lis les entete de la requete
+         * Afin d'envoyer aux clients correspondants la requete
          *
-         * @param  request la requête provenant du client sous forme de Map
+         * @param  request la requete provenant du client sous forme de Map
+         * @author 360matt
          */
         protected void transferData (Map<String, String> request) {
             if (request.keySet().containsAll(requires)) {
-                // si la requête contient tous les entête requis
+                // si la requete contient tous les entete requis
 
                 request.put("__sender", name);
 
                 String recipient = request.get("__recipient");
 
                 if (recipient.equals("all")) {
-                    // permet d'envoyer à tous les clients connectés au serveur
+                    // permet d'envoyer a tous les clients connectes au serveur
                     clients.forEach((name, clientProcess) -> {
                         if (!clientProcess.client.isClosed()) {
                             clientProcess.out.println(SerializeMap.map2str(request));

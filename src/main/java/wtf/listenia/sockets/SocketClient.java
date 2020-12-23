@@ -14,6 +14,13 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * Permet de creer un client Socket de SocketExchange
+ * Avec multiples methodes pour communiquer avec d'autre clients
+ * Tout en restant productif et rapide
+ *
+ * @author 360matt
+ */
 public class SocketClient {
     private static final ConcurrentHashMap<String, Consumer<Map<String, String>>> listeners = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<String, Callback> callbacks = new ConcurrentHashMap<>();
@@ -28,7 +35,10 @@ public class SocketClient {
     /**
      * Le constructeur connecte le client au serveur et s'y authentifie
      *
-     * @param  port le port du serveur à lancer
+     * @param  name le nom du client
+     * @param  host l'adresse du serveur a se connecter
+     * @param  port le port du serveur a se connecter
+     * @author 360matt
      */
     public SocketClient (String name, String host, int port) {
         new Thread(() -> {
@@ -71,7 +81,7 @@ public class SocketClient {
         }).start();
     }
 
-    private void registerDefaultListener () {
+    protected void registerDefaultListener () {
         listen("isOnline", x -> reply(x, new HashMap<>()));
     }
 
@@ -79,13 +89,14 @@ public class SocketClient {
 
 
     /**
-     * Traite une requête reçu depuis le serveur.
-     * Et envoie la requête vers un listener ou un callback
+     * Traite une requete recu depuis le serveur.
+     * Et envoie la requete vers un listener ou un callback
      *
-     * @param  request  la requête que le client a reçu au format Map<></>
+     * @param  request  la requete que le client a recu au format Map
+     * @author 360matt
      */
 
-    public void processRequest (Map<String, String> request) {
+    protected void processRequest (Map<String, String> request) {
         String channel = request.get("__channel");
         String id = request.get("__id_reply");
 
@@ -118,11 +129,12 @@ public class SocketClient {
     }
 
     /**
-     * Initialise un listener qui sera prêt pour reçevoir des requêtes
+     * Initialise un listener qui sera pret pour recevoir des requetes
      * Chaque listener ne peut prendre en charge qu'un channel
      *
-     * @param  channel  le nom du channel qui sera écouté
-     * @param  map  la requête sous forme de Map<> que le client recevra
+     * @param  channel  le nom du channel qui sera ecoute
+     * @param  map  la requete sous forme de Map que le client recevra
+     * @author 360matt
      */
     public void listen (String channel, Consumer<Map<String, String>> map) {
         int randomNum = ThreadLocalRandom.current().nextInt(20, 5001);
@@ -130,10 +142,11 @@ public class SocketClient {
     }
 
     /**
-     * Répond à une requête receptionnée par un listener
+     * Repond a une requete receptionnee par un listener
      *
-     * @param  before  la requête qui en est l'origine
-     * @param  reply la réponse à cette requête
+     * @param  before  la requete qui en est l'origine
+     * @param  reply la reponse a cette requete
+     * @author 360matt
      */
     public void reply (Map<String, String> before, Map<String, String> reply) {
         if (!client.isClosed() && client.isConnected()) {
@@ -147,12 +160,13 @@ public class SocketClient {
     }
 
     /**
-     * Répond à une requête receptionnée par un listener
+     * Repond a une requete receptionnee par un listener
      *
-     * @param  target le client qui doit reçevoir cette requête
-     * @param  channel le channel à laquelle la requête doit véhiculer
-     * @param  data le contenu de la requête sous la forme Map<>
-     * @return un Callback permettant de capturer une réponse
+     * @param  target le client qui doit recevoir cette requete
+     * @param  channel le channel a laquelle la requete doit vehiculer
+     * @param  data le contenu de la requete sous la forme Map
+     * @return un Callback permettant de capturer une reponse
+     * @author 360matt
      */
     public Callback send (String target, String channel, Map<String, String> data) {
         if (!client.isClosed() && client.isConnected()) {
@@ -171,10 +185,11 @@ public class SocketClient {
     }
 
     /**
-     * Récupère le status d'un client quelquonque, réel ou non
+     * Recupere le status d'un client quelquonque, reel ou non
      *
      * @param  target le client qu'on questionne
      * @return le status du client
+     * @author 360matt
      */
     public boolean isOnline (String target) {
         CompletableFuture<Boolean> future = new CompletableFuture<>();
@@ -186,11 +201,12 @@ public class SocketClient {
     }
 
     /**
-     * Récupère le ping réel aller-retour d'un client réel.
+     * Recupere le ping reel aller-retour d'un client reel.
      * Si le client n'est pas joignable, le ping sera de 1s (1000ms)
      *
      * @param  target le client qu'on questionne
-     * @return un entier compris dans le rang [0;1000] représentant le ping
+     * @return un entier compris dans le rang [0;1000] representant le ping
+     * @author 360matt
      */
     public int getPing (String target) {
         Long date = new Date().getTime();
@@ -204,7 +220,8 @@ public class SocketClient {
     }
 
     /**
-     * La class de Callback permettant de capturer une réponse suite à une requuête.
+     * La class de Callback permettant de capturer une reponse suite a une requuete.
+     * @author 360matt
      */
     public static class Callback {
         private final Map<String, String> map;
@@ -223,8 +240,9 @@ public class SocketClient {
         /**
          * Enregistre le callback dans un listener unique
          *
-         * @param  callback le consumer de type Map<> qui sera call lors de la réponse
+         * @param  callback le consumer de type Map qui sera call lors de la reponse
          * @return l'instance de cette class
+         * @author 360matt
          */
         public Callback callback (Consumer<Map<String, String>> callback) {
             this.consumer = callback;
@@ -236,23 +254,24 @@ public class SocketClient {
         }
 
         /**
-         * Défini le temps d'attente
+         * Defini le temps d'attente
          *
-         * @param  seconds le délais s'exprimant en seconde
+         * @param  seconds le delais s'exprimant en seconde
          * @return l'instance de cette class
+         * @author 360matt
          */
         public Callback waiting (float seconds) { wait = seconds; return this; }
 
         /**
-         * Execute le consumer du timeout si aucune réponse n'a été reçu pendant le délais.
+         * Execute le consumer du timeout si aucune reponse n'a ete recu pendant le delais.
          *
-         * Elle doit être impérativement executée
+         * Elle doit etre imperativement executee
          * pour retirer le consumer du callback de la liste
          * des listener temporaires.
-         * Dans le cas contraire il y aurait une fuite de mémoire.
+         * Dans le cas contraire il y aurait une fuite de memoire.
          *
-         * @param  fail le consumer de type Void qui sera call si aucune réponse n'est parvenue.
-         * @return ne renvoie pas l'instance de la class
+         * @param  fail le consumer de type Void qui sera call si aucune reponse n'est parvenue.
+         * @author 360matt
          *
          */
         public void timeout (Consumer<Void> fail) {
