@@ -190,7 +190,7 @@ public class SocketClient {
      * @author 360matt
      */
     public boolean isOnline (String target) {
-        CompletableFuture<Boolean> future = new CompletableFuture<>();
+        final CompletableFuture<Boolean> future = new CompletableFuture<>();
         send(target, "isOnline", new HashMap<>())
                 .callback(x -> future.complete(true))
                 .timeout(x -> future.complete(false));
@@ -207,12 +207,12 @@ public class SocketClient {
      * @author 360matt
      */
     public int getPing (String target) {
-        Long date = new Date().getTime();
-        CompletableFuture<Long> future = new CompletableFuture<>();
+        final Long date = System.currentTimeMillis();
+        final CompletableFuture<Long> future = new CompletableFuture<>();
         send(target, "isOnline", new HashMap<>())
-                .callback(x -> future.complete(new Date().getTime()))
+                .callback(x -> future.complete(System.currentTimeMillis()))
                 .waiting(1)
-                .timeout(x -> future.complete(new Date().getTime()));
+                .timeout(x -> future.complete(System.currentTimeMillis()));
 
         return (int) (future.join() - date);
     }
