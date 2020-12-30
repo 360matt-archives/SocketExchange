@@ -23,8 +23,8 @@ public class ServerTest {
 
                 Thread.sleep(500);
 
-                final int nb = 6000;
-                final int tests = 10;
+                final int nb = 4;
+                final int tests = 1;
                 final List<Integer> moyennes = new ArrayList<>();
 
 
@@ -34,12 +34,13 @@ public class ServerTest {
                         client.send("hiboux", "0", new HashMap<String, String>() {{
                             put("action", "tuer");
                             put("cible", "Caporal");
+                            put("caracteristique", "Jean du jardin marchait très droit avec ses amis les clown");
                         }}).callback(callback -> {
-                            // System.out.println(callback.get("message"));
+                            System.out.println(callback.get("message"));
                         });
                     }
                     moyennes.add((int) (System.currentTimeMillis()-start));
-                    Thread.sleep(50);
+                    Thread.sleep(500);
                 }
 
 

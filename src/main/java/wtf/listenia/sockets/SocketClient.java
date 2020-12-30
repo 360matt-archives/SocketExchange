@@ -51,18 +51,18 @@ public class SocketClient {
                         out.println("__auth=" + name);
                         out.flush();
 
-                        System.out.printf( "[Sockets - %s] Connecté à %s:%s%n", name, host, port );
+                        System.out.println( "[Sockets - " + name + "] Connecté à " + host + ":" + port );
 
                         while (client.isConnected() && !client.isClosed()) {
                             // listen futures requests
                             processRequest(SerializeMap.str2map(in.readLine()));
                         }
 
-                        System.out.printf( "[Sockets - %s] Connexion du serveur perdue%n", name );
+                        System.out.println( "[Sockets - " + name + "] Connexion du serveur perdue%n" );
 
                     } catch (Exception e) {
                         e.printStackTrace();
-                        System.out.printf( "[Sockets - %s] Essais de reconnexion dans 5 secondes ...%n", name );
+                        System.out.println( "[Sockets - " + name + "] Essais de reconnexion dans 5 secondes ...%n" );
                         TimeUnit.SECONDS.sleep(5L);
                     } finally {
                         try {
@@ -229,7 +229,7 @@ public class SocketClient {
         private Consumer<Map<String, String>> consumer;
 
         private Thread threadTimeout;
-        private float wait = 0.05F;
+        private double wait = 0.05D;
 
 
         public Callback () {
@@ -264,7 +264,7 @@ public class SocketClient {
          * @return l'instance de cette class
          * @author 360matt
          */
-        public Callback waiting (float seconds) { wait = seconds; return this; }
+        public Callback waiting (double seconds) { wait = seconds; return this; }
 
         /**
          * Execute le consumer du timeout si aucune reponse n'a ete recu pendant le delais.

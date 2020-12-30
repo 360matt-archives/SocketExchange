@@ -74,7 +74,7 @@ public class SocketServer {
                     in.close();
 
                     if (name != null)
-                        System.out.printf("[Sockets] Le client %s s'est déconnecté%n", name);
+                        System.out.println("[Sockets] Le client " + name + " s'est déconnecté");
 
 
                 } catch (Exception ignored) { }
@@ -93,7 +93,7 @@ public class SocketServer {
                 this.name = request.get("__auth");
                 clients.put(this.name, this);
 
-                System.out.printf("[Sockets] Client %s connecté sous le nom de %s%n", client.getRemoteSocketAddress(), name);
+                System.out.println("[Sockets] Client " + client.getRemoteSocketAddress() + " connecté sous le nom de " + name);
             } else if (this.name != null){
                 transferData(request);
             }
