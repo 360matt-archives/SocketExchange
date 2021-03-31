@@ -1,87 +1,55 @@
-import wtf.listenia.sockets.SocketClient;
-import wtf.listenia.sockets.SocketServer;
+import fr.i360matt.sox.client.SoxClient;
+import fr.i360matt.sox.common.Request;
+import fr.i360matt.sox.common.Session;
+import fr.i360matt.sox.server.SoxServer;
 
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
 
 public class ServerTest {
 
+    static long start;
+
     public static void main (String[] args) throws InterruptedException {
 
-        new Thread(() -> { // server
-            SocketServer srv = new SocketServer(25565);
-        }).start();
+        final SoxServer server = new SoxServer(25565, "key");
+        server.addEvent(((request, client) -> {
+            System.out.println("Recu server: " + request.content);
 
-
-        new Thread(() -> { // client TWO
-            try {
-                SocketClient client = new SocketClient("two", "127.0.0.1", 25565);
-
-
-                Thread.sleep(500);
-
-                final int nb = 4;
-                final int tests = 1;
-                final List<Integer> moyennes = new ArrayList<>();
-
-
-                for (int k = 0; k < tests; k++) {
-                    final long start = System.currentTimeMillis();
-                    for (int i = 0; i < nb; i++) {
-                        client.send("hiboux", "0", new HashMap<String, String>() {{
-                            put("action", "tuer");
-                            put("cible", "Caporal");
-                            put("caracteristique", "Jean du jardin marchait très droit avec ses amis les clown");
-                        }}).callback(callback -> {
-                            System.out.println(callback.get("message"));
-                        });
-                    }
-                    moyennes.add((int) (System.currentTimeMillis()-start));
-                    Thread.sleep(500);
-                }
-
-
-                System.out.println("Pour " + nb + " requêtes : " + Arrays.stream(moyennes.toArray(new Integer[]{})).mapToInt(Integer::intValue).average());
+            client.sendRequest(new Request() {{
+                this.action = "r";
+                this.recipient = "test";
+                this.channel = "hey";
+                this.content = "martin ;) cc golfire";
+            }});
+        }));
+        // Start le server
 
 
 
 
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }).start();
+        final Session session = new Session() {{
+            this.name = "360matt";
+            this.group = "admin";
+            this.token = server.getToken(this); // un passe-partout
+        }};
 
-
-        new Thread(() -> { // client TWO
-            try {
-                SocketClient client = new SocketClient("hiboux", "127.0.0.1", 25565);
-
-
-                    client.listen("0", map -> {
-                        if (map.containsKey("action")) {
-                            if (map.get("action").equals("tuer")) {
-                                // commit homicid
-
-                                client.reply(map, new HashMap<String, String>() {{
-                                    put("message", map.get("cible") + " sera tué au coucher du soleil");
-                                }});
-
-                            }
-                        }
-                    });
-
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }).start();
-
-        Thread.sleep(10_000___000);
+        System.out.println(server.getToken(new Session() {{
+            this.name = "test";
+            this.group = "truc";
+        }}));
 
 
 
+        Thread.sleep(2000);
+
+        final SoxClient client = new SoxClient("127.0.0.1", 25565, session);
+        client.sendRequest(new Request() {{
+            this.action = "t";
+            this.recipient = "360matt";
+            this.channel = "hey";
+            this.content = "miaou";
+        }}).callback(2000000, (request -> {
+            System.out.println("reponse: " + request.content);
+        }));
 
     }
 
